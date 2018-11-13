@@ -9,8 +9,11 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+<<<<<<< HEAD
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+=======
+>>>>>>> [fix #2] edge calculator
 
 import com.iota.iri.controllers.TransactionViewModel;
 import com.iota.iri.model.HashId;
@@ -25,7 +28,10 @@ public class CumulativeWeightWithEdgeCalculatorTest {
             "tx%d cumulative weight is not as expected";
     private static Tangle tangle;
     private static CumulativeWeightWithEdgeCalculator cumulativeWeightWithEdgeCalculator;
+<<<<<<< HEAD
     private final Logger log = LoggerFactory.getLogger(this.getClass());
+=======
+>>>>>>> [fix #2] edge calculator
 
     @AfterClass
     public static void tearDown() throws Exception {
@@ -82,6 +88,7 @@ public class CumulativeWeightWithEdgeCalculatorTest {
 
         
         Assert.assertEquals(String.format(TX_CUMULATIVE_WEIGHT_IS_NOT_AS_EXPECTED_FORMAT, 5),
+<<<<<<< HEAD
                 6, txToCw.get(transaction5.getHash()).intValue());
         Assert.assertEquals(String.format(TX_CUMULATIVE_WEIGHT_IS_NOT_AS_EXPECTED_FORMAT, 4),
                 7, txToCw.get(transaction4.getHash()).intValue());
@@ -93,6 +100,19 @@ public class CumulativeWeightWithEdgeCalculatorTest {
                 15, txToCw.get(transaction1.getHash()).intValue());
         Assert.assertEquals(String.format(TX_CUMULATIVE_WEIGHT_IS_NOT_AS_EXPECTED_FORMAT, 0),
                 9, txToCw.get(transaction.getHash()).intValue());
+=======
+                1, txToCw.get(transaction5.getHash()).intValue());
+        Assert.assertEquals(String.format(TX_CUMULATIVE_WEIGHT_IS_NOT_AS_EXPECTED_FORMAT, 4),
+                1, txToCw.get(transaction4.getHash()).intValue());
+        Assert.assertEquals(String.format(TX_CUMULATIVE_WEIGHT_IS_NOT_AS_EXPECTED_FORMAT, 3),
+                1, txToCw.get(transaction3.getHash()).intValue());
+        Assert.assertEquals(String.format(TX_CUMULATIVE_WEIGHT_IS_NOT_AS_EXPECTED_FORMAT, 2),
+                3, txToCw.get(transaction2.getHash()).intValue());
+        Assert.assertEquals(String.format(TX_CUMULATIVE_WEIGHT_IS_NOT_AS_EXPECTED_FORMAT, 1),
+                4, txToCw.get(transaction1.getHash()).intValue());
+        Assert.assertEquals(String.format(TX_CUMULATIVE_WEIGHT_IS_NOT_AS_EXPECTED_FORMAT, 0),
+                3, txToCw.get(transaction.getHash()).intValue());
+>>>>>>> [fix #2] edge calculator
     }
 
 }

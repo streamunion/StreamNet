@@ -700,6 +700,7 @@ public class API {
                 transactionViewModel.updateSender("local");
                 transactionViewModel.update(instance.tangle, "sender");
             }
+            elements.add(transactionViewModel);
         }
         */
     }

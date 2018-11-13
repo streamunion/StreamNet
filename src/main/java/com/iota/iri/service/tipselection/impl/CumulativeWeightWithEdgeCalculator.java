@@ -1,25 +1,21 @@
 package com.iota.iri.service.tipselection.impl;
 
-import com.google.gson.Gson;
 import com.iota.iri.controllers.ApproveeViewModel;
 import com.iota.iri.controllers.TransactionViewModel;
 import com.iota.iri.model.Hash;
 import com.iota.iri.model.HashId;
 import com.iota.iri.model.HashPrefix;
-import com.iota.iri.service.tipselection.RatingCalculator;
-import com.iota.iri.utils.collections.impl.TransformingBoundedHashSet;
 import com.iota.iri.utils.collections.impl.TransformingMap;
-import com.iota.iri.utils.collections.interfaces.BoundedSet;
 import com.iota.iri.utils.collections.interfaces.UnIterableMap;
 import com.iota.iri.storage.Tangle;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * Used to create a weighted random walks.
@@ -28,8 +24,8 @@ public class CumulativeWeightWithEdgeCalculator extends CumulativeWeightCalculat
 
 	private static final Logger log = LoggerFactory.getLogger(CumulativeWeightWithEdgeCalculator.class);
 	
-	private static final Gson gson = new Gson();
-
+	private static final int UNIT_WEIGHT = 1;
+	
 	public CumulativeWeightWithEdgeCalculator(Tangle tangle) {
 		super(tangle);
 	}
@@ -94,7 +90,7 @@ public class CumulativeWeightWithEdgeCalculator extends CumulativeWeightCalculat
 	}
 
 	private UnIterableMap<HashId, Integer> calculateCwInOrder(LinkedHashSet<Hash> txsToRate) throws Exception {
-		// 计算最大时长以及初始化各边时长
+		// calculator the max time difference
 		long maxTimeDiff = 0l;
 		long timeDiff = 0l;
 		Iterator<Hash> txHashIterator = txsToRate.iterator();
@@ -103,16 +99,16 @@ public class CumulativeWeightWithEdgeCalculator extends CumulativeWeightCalculat
 		while (txHashIterator.hasNext()) {
 			Hash txHash = txHashIterator.next();
 			TransactionViewModel transactionViewModel = TransactionViewModel.fromHash(tangle, txHash);
-			// 获取trunk以及branch
+			// get trunk and branch
 			Hash trunkHash = transactionViewModel.getTrunkTransactionHash();
 			Hash branchHash = transactionViewModel.getBranchTransactionHash();
-			// 获取trunk以及branch的验证子节点
+			// get provers by trunk and branch
 			Set<Hash> trunkSet = approvers.get(trunkHash) == null ? new HashSet<Hash>() : approvers.get(trunkHash);
 			Set<Hash> branchSet = approvers.get(branchHash) == null ? new HashSet<Hash>() : approvers.get(branchHash);
-			// 定义边的key
+			// define the directed edge as the key
 			String trunkEdge = trunkHash.toString() + txHash.toString();
 			String branchEdge = branchHash.toString() + txHash.toString();
-			// 边的长度存入map缓存
+			// put the edge weight into the map
 			edgeMap.put(trunkEdge, transactionViewModel.getTrunkTimeDifference());
 			edgeMap.put(branchEdge, transactionViewModel.getBranchTimeDifference());
 			trunkSet.add(txHash);
@@ -126,31 +122,41 @@ public class CumulativeWeightWithEdgeCalculator extends CumulativeWeightCalculat
 		}
 
 		UnIterableMap<HashId, Integer> txHashToCumulativeWeight = createTxHashToCumulativeWeightMap(txsToRate.size());
-		
+		//avoid decimal loss,define a float map
+		Map<HashId, Float> txHashToCumulativeWeightFloat = new HashMap<HashId, Float>();
 		txHashIterator = txsToRate.iterator();
-		Object[] objArray = txsToRate.toArray();
-		for (int i = 0, j = objArray.length; i < j; i++) {
-			Hash txHash = (Hash) objArray[i];
-			txHashToCumulativeWeight = updateCwWithEdge(txHashToCumulativeWeight, txHash, edgeMap, approvers,
-					maxTimeDiff, j - i);
+		while (txHashIterator.hasNext()) {
+			Hash txHash = txHashIterator.next();
+			txHashToCumulativeWeightFloat = updateCwWithEdge(txHashToCumulativeWeightFloat, txHash, edgeMap, approvers,
+					maxTimeDiff);
+		}
+		//parse the float map to the result we need
+		txHashToCumulativeWeight = parseWeight(txHashToCumulativeWeight,txHashToCumulativeWeightFloat);
+		return txHashToCumulativeWeight;
+	}
 
+	private UnIterableMap<HashId, Integer> parseWeight(UnIterableMap<HashId, Integer> txHashToCumulativeWeight,
+			Map<HashId, Float> txHashToCumulativeWeightFloat) {
+		Iterator<Entry<HashId, Float>> it = txHashToCumulativeWeightFloat.entrySet().iterator();
+		while(it.hasNext()) {
+			Entry<HashId, Float> entry = it.next();
+			txHashToCumulativeWeight.put(entry.getKey(), Math.round(entry.getValue()));
 		}
 		return txHashToCumulativeWeight;
 	}
 
-	private UnIterableMap<HashId, Integer> updateCwWithEdge(UnIterableMap<HashId, Integer> txHashToCumulativeWeight,
-			Hash txHash, Map<String, Long> edgeMap, Map<Hash, Set<Hash>> approvers, long maxTimeDiff, int position) {
+	private Map<HashId, Float> updateCwWithEdge(Map<HashId, Float> txHashToCumulativeWeight,
+			Hash txHash, Map<String, Long> edgeMap, Map<Hash, Set<Hash>> approvers, long maxTimeDiff) {
 		Set<Hash> approveEdge = approvers.get(txHash) == null ? new HashSet<Hash>() : approvers.get(txHash);
-		int weight = position;
+		float weight = UNIT_WEIGHT;
 		float iteratorWeight = 0;
 		Iterator<Hash> setIterator = approveEdge.iterator();
-		// 遍历证明的点，点的权重×边权重后相加
+		// loop all points
 		while (setIterator.hasNext()) {
-			// 获取点
 			Hash prover = setIterator.next();
-			// 获取之前点的权重
-			int preWeight = txHashToCumulativeWeight.get(prover);
-			// 获取边的权重
+			// get the point's weight
+			float preWeight = txHashToCumulativeWeight.get(prover);
+			// get the edge weight
 			float edgeWeight = (float) edgeMap.get(txHash.toString() + prover.toString()) / maxTimeDiff;
 			iteratorWeight += edgeWeight * preWeight;
 		}
