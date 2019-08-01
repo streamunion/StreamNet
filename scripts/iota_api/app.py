@@ -164,7 +164,6 @@ def get_balance():
 @app.route('/get_file', methods=['POST'])
 def get_file():
     req_json = request.get_json()
-    print("request is" + str(req_json), file=sys.stderr)
 
     if req_json is None:
         return 'error'
