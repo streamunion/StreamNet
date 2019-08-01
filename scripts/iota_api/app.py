@@ -164,6 +164,7 @@ def get_balance():
 @app.route('/get_file', methods=['POST'])
 def get_file():
     req_json = request.get_json()
+    print("request is" + str(req_json), file=sys.stderr)
 
     if req_json is None:
         return 'error'
@@ -288,7 +289,7 @@ def add_neighbors():
         return 'error'
     uris = req_json[u'uris']
     resp = cache.add_neighbors(uris)
-    return resp
+    return str(resp)
 
 @app.route('/get_block_content', methods=['GET'])
 def get_block_content():
@@ -319,7 +320,7 @@ def get_dag():
         f = open(file_save, 'w')
         f.write(resp[u'dag'])
         f.close()
-    return resp[u'dag'] 
+    return str(resp[u'dag'])
 
 @app.route('/get_utxo', methods=['GET'])
 def get_utxo():
@@ -336,12 +337,12 @@ def get_utxo():
         f = open(file_save, 'w')
         f.write(resp[u'dag'])
         f.close()
-    return resp[u'dag']
+    return str(resp[u'dag'])
 
 @app.route('/get_total_order', methods=['GET'])
 def get_total_order():
     resp = cache.get_total_order()
-    return resp[u'totalOrder']
+    return str(resp[u'totalOrder'])
 
 if __name__ == '__main__':
     # timer
